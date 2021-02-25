@@ -2,12 +2,10 @@ package lecture007.lowlevel.api.sync
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.Http.IncomingConnection
-import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpMethods, HttpRequest, HttpResponse, StatusCodes, Uri }
+import akka.http.scaladsl.model.{ HttpMethods, HttpRequest, HttpResponse, Uri }
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Sink
+import lecture007.lowlevel.api.Pages
 
-import scala.concurrent.duration.DurationInt
 import scala.util.{ Failure, Success }
 
 object SyncServerApp extends App {
@@ -20,9 +18,13 @@ object SyncServerApp extends App {
   // Handlers for the various requests
   val requestHandler: HttpRequest => HttpResponse = {
 
-    case HttpRequest ( HttpMethods.GET, Uri.Path ( "/hello" ), _, _, _ ) => helloResponse ()
+    case HttpRequest ( HttpMethods.GET, Uri.Path ( "/hello" ), _, _, _ ) => Pages.helloPage ()
 
-    case request: HttpRequest => notFoundResponse ( request )
+    case request: HttpRequest => {
+
+      request.discardEntityBytes ()
+      Pages.notFoundPage ( request )
+    }
   }
 
   // Start the server and bind the request handler
@@ -36,40 +38,5 @@ object SyncServerApp extends App {
     }
 
     case Failure ( ex ) => println ( s"Server binding failed: $ex" )
-  }
-
-  def helloResponse () = HttpResponse (
-
-    StatusCodes.OK, // HTTP 200
-    entity = HttpEntity (
-      ContentTypes.`text/html(UTF-8)`,
-      """
-        |<html>
-        | <body>
-        |   Hello from Akka HTTP!
-        | </body>
-        |</html>
-      """.stripMargin
-    )
-  )
-
-  def notFoundResponse ( request: HttpRequest ) = {
-
-    request.discardEntityBytes ()
-
-    HttpResponse (
-
-      StatusCodes.NotFound, // 404
-      entity = HttpEntity (
-        ContentTypes.`text/html(UTF-8)`,
-        """
-          |<html>
-          | <body>
-          |   OOPS! The resource can't be found.
-          | </body>
-          |</html>
-        """.stripMargin
-      )
-    )
   }
 }
