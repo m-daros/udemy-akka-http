@@ -24,8 +24,7 @@ object AsyncServerApp extends App {
     case request: HttpRequest => {
 
       request.discardEntityBytes ()
-
-      Future ( Pages.notFoundPage ( request ) )
+      Future ( Pages.notFoundPage () )
     }
   }
 

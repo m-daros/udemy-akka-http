@@ -1,35 +1,28 @@
 package lecture007.lowlevel.api
 
-import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpRequest, HttpResponse, StatusCodes }
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse, StatusCode, StatusCodes }
 
 object Pages {
 
-  def helloPage () = HttpResponse (
+  def helloPage () = page ( "Hello from Akka HTTP!", StatusCodes.OK )
 
-    StatusCodes.OK, // HTTP 200
-    entity = HttpEntity (
-      ContentTypes.`text/html(UTF-8)`,
-      """
-        |<html>
-        | <body>
-        |   Hello from Akka HTTP!
-        | </body>
-        |</html>
-      """.stripMargin
-    )
-  )
+  def welcomePage () = page ( "Welcome to Akka HTTP!", StatusCodes.OK )
 
-  def notFoundPage ( request: HttpRequest ) = {
+  def aboutPage () = page ( "This is Akka HTTP!", StatusCodes.OK )
+
+  def notFoundPage () = page ( "OOPS! The resource can't be found.", StatusCodes.NotFound )
+
+  private def page ( message: String, statusCode: StatusCode ) = {
 
     HttpResponse (
 
-      StatusCodes.NotFound, // 404
+      statusCode,
       entity = HttpEntity (
         ContentTypes.`text/html(UTF-8)`,
-        """
+        s"""
           |<html>
           | <body>
-          |   OOPS! The resource can't be found.
+          |   $message
           | </body>
           |</html>
         """.stripMargin

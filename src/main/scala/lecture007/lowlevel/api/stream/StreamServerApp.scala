@@ -24,8 +24,7 @@ object StreamServerApp extends App {
     case request: HttpRequest => {
 
       request.discardEntityBytes ()
-
-      Pages.notFoundPage ( request )
+      Pages.notFoundPage ()
     }
   }
 
