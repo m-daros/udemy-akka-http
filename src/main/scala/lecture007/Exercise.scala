@@ -28,14 +28,20 @@ object Exercise extends App {
       Pages.notFoundPage ()
     }
   }
+
   // Start the server and bind the request handler
   val serverBindingFuture = Http ().bindAndHandle ( streamRequestHandler, "localhost", 8388 )
+
   serverBindingFuture.onComplete {
 
     case Success ( binding ) => {
+
       println ( s"Server binding successful. ${ binding.localAddress }" )
     }
 
-    case Failure ( ex ) => println ( s"Server binding failed: $ex" )
+    case Failure ( ex ) => {
+
+      println ( s"Server binding failed: $ex" )
+    }
   }
 }
