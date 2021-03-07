@@ -57,7 +57,7 @@ object GuitarController extends App with GuitarStoreJsonProtocol {
 
       guitarCreatedFuture.map {
 
-        _ => HttpEntity ( ContentTypes.`application/json`, "" )
+        _ => HttpEntity ( ContentTypes.`application/json`, guitar.toJson.prettyPrint )
       }
     }
 
