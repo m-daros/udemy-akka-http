@@ -42,7 +42,6 @@ object GuitarController extends App with GuitarStoreJsonProtocol {
   } ~
   ( post & path ( "api" / "v1" / "guitars" ) & extractRequestEntity ) { entity =>
 
-
     // Entities are a Source [ByteString]
     val strictEntityFuture = entity.toStrict ( 3 seconds )
 
