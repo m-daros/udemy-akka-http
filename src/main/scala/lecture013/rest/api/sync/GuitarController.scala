@@ -29,6 +29,7 @@ object GuitarController extends App with GuitarStoreJsonProtocol {
 
   val guitarRepository = actorSystem.actorOf ( Props [ GuitarRepository ], "guitarRepository" )
 
+  // GET /api/v1/guitars
   val routes = ( get & path ( "api" / "v1" / "guitars" ) ) {
 
     val guitarsFuture: Future [ List [ Guitar ] ] = ( guitarRepository ? FindAllGuitars ).mapTo [ List [ Guitar ] ]
@@ -40,6 +41,9 @@ object GuitarController extends App with GuitarStoreJsonProtocol {
 
     complete ( response )
   } ~
+  //
+  //
+  // POST /api/v1/guitars
   ( post & path ( "api" / "v1" / "guitars" ) & extractRequestEntity ) { entity =>
 
     // Entities are a Source [ByteString]
@@ -59,6 +63,9 @@ object GuitarController extends App with GuitarStoreJsonProtocol {
 
     complete ( response )
   } ~
+  //
+  //
+  // GET /api/v1/guitars/{guitarId}
   ( get & path ( "api" / "v1" / "guitars" / IntNumber ) ) { guitarId: Int =>
 
     val guitarFuture = getGuitar ( guitarId )
