@@ -2,21 +2,20 @@ package lecture013.rest.api.sync
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpMethods, HttpRequest, HttpResponse, StatusCodes }
-import akka.http.scaladsl.server.Directives.{ entity, extractRequestEntity, _ }
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity }
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
+import akka.http.scaladsl.server.Directives._
 import akka.util.Timeout
-
-import scala.concurrent.duration.DurationInt
-import spray.json._
-import lecture013.rest.api.json.protocol.GuitarStoreJsonProtocol
 import lecture013.rest.api.guitardb.GuitarRepository
 import lecture013.rest.api.guitardb.commands.{ CreateGuitar, FindAllGuitars, FindGuitar }
-import lecture013.rest.api.model.Guitar
 import lecture013.rest.api.guitardb.events.GuitarCreated
+import lecture013.rest.api.json.protocol.GuitarStoreJsonProtocol
+import lecture013.rest.api.model.Guitar
 
-import scala.concurrent.Future
+import scala.concurrent.duration._
+
+import spray.json._
 
 object GuitarController extends App with GuitarStoreJsonProtocol {
 
@@ -29,17 +28,17 @@ object GuitarController extends App with GuitarStoreJsonProtocol {
 
   val guitarRepository = actorSystem.actorOf ( Props [ GuitarRepository ], "guitarRepository" )
 
+  val routes =
+
   // GET /api/v1/guitars
-  val routes = ( get & path ( "api" / "v1" / "guitars" ) ) {
+  ( get & path ( "api" / "v1" / "guitars" ) ) {
 
-    val guitarsFuture: Future [ List [ Guitar ] ] = ( guitarRepository ? FindAllGuitars ).mapTo [ List [ Guitar ] ]
+    var guitarEntity = ( guitarRepository ? FindAllGuitars )
+      .mapTo [ List [ Guitar ] ]
+      .map ( _.toJson.prettyPrint )
+      .map ( toHttpEntity )
 
-    val response = guitarsFuture.map { guitars =>
-
-        HttpEntity ( ContentTypes.`application/json`, guitars.toJson.prettyPrint )
-    }
-
-    complete ( response )
+    complete ( guitarEntity )
   } ~
   //
   //
@@ -49,36 +48,39 @@ object GuitarController extends App with GuitarStoreJsonProtocol {
     // Entities are a Source [ByteString]
     val strictEntityFuture = entity.toStrict ( 3 seconds )
 
-    val response = strictEntityFuture.flatMap { strictEntity =>
+    val guitarEntity = strictEntityFuture.flatMap { strictEntity =>
 
       val guitarJsonString = strictEntity.data.utf8String
       val guitar = guitarJsonString.parseJson.convertTo [ Guitar ]
-      val guitarCreatedFuture: Future [ GuitarCreated ] = ( guitarRepository ? CreateGuitar ( guitar ) ).mapTo [ GuitarCreated ]
 
-      guitarCreatedFuture.map {
-
-        _ => HttpEntity ( ContentTypes.`application/json`, guitar.toJson.prettyPrint )
-      }
+      ( guitarRepository ? CreateGuitar ( guitar ) )
+        .mapTo [ GuitarCreated ]
+        .map ( _ => guitar )
+        .map ( _.toJson.prettyPrint )
+        .map ( toHttpEntity )
     }
 
-    complete ( response )
+    complete ( guitarEntity )
   } ~
   //
   //
   // GET /api/v1/guitars/{guitarId}
   ( get & path ( "api" / "v1" / "guitars" / IntNumber ) ) { guitarId: Int =>
 
-    val guitarFuture = getGuitar ( guitarId )
-    val guitarEntity = guitarFuture.map { guitarOption =>
-
-      HttpEntity ( ContentTypes.`application/json`, guitarOption.toJson.prettyPrint )
-    }
+    val guitarEntity = getGuitar ( guitarId )
+      .map ( _.toJson.prettyPrint )
+      .map ( toHttpEntity )
 
     complete ( guitarEntity )
   }
 
   initGuitarDB ( guitarRepository )
   Http ().bindAndHandle ( routes, "localhost", 8080 )
+
+  private def toHttpEntity ( payload: String ) = {
+
+    HttpEntity ( ContentTypes.`application/json`, payload )
+  }
 
   private def getGuitar ( id: Int ) = {
 
